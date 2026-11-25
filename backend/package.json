@@ -1,0 +1,33 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "backend api for telegram_newsletter_hub",
+  "main": "server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "test": "set NODE_ENV=test&&jest --watchAll --verbose"
+  },
+  "keywords": [],
+  "author": "Giacomo Giovannetti",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.10",
+    "mongodb-memory-server": "^11.4.0",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "http-status-codes": "^2.3.0",
+    "mongodb": "^7.9.1",
+    "mongoose": "^9.13.1",
+    "morgan": "^1.12.1"
+  }
+}
