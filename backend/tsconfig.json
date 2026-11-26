@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2022",
     "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
@@ -10,7 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "moduleResolution": "NodeNext",
+    "types": ["node"],
     "sourceMap": true,
     "resolveJsonModule": true,
     "isolatedModules": true
