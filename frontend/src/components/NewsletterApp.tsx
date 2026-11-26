@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import DOMPurify from 'dompurify';
 import type { NewsletterItem } from '../types/newsletter';
 
 declare global {
@@ -7,6 +8,7 @@ declare global {
       WebApp?: {
         ready: () => void;
         expand: () => void;
+        initData: string;
         HapticFeedback?: {
           notificationOccurred: (type: 'success' | 'error' | 'warning') => void;
         };
@@ -18,7 +20,7 @@ declare global {
 type SortOption = 'latest' | 'oldest' | 'random';
 
 const API_URL = (import.meta.env.PUBLIC_API_URL ?? '').replace(/\/$/, '');
-const API_SECRET = import.meta.env.PUBLIC_API_SECRET ?? '';
+const TELEGRAM_INIT_DATA = window.Telegram?.WebApp?.initData ?? '';
 
 function apiUrl(path: string): string {
   return `${API_URL}${path}`;
@@ -27,7 +29,7 @@ function apiUrl(path: string): string {
 function apiHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
-    'x-api-secret': API_SECRET,
+    'x-telegram-init-data': TELEGRAM_INIT_DATA,
   };
 }
 
@@ -66,11 +68,15 @@ function prepareEmailHtml(html: string | undefined): string {
     return '';
   }
 
-  if (typeof DOMParser === 'undefined') {
-    return html;
-  }
-
-  const document = new DOMParser().parseFromString(html, 'text/html');
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'ul', 'ol',
+      'li', 'strong', 'em', 'blockquote', 'img', 'table', 'tr',
+      'td', 'th', 'br',
+    ],
+    ALLOWED_ATTR: ['href', 'name', 'target', 'rel', 'title', 'src', 'alt', 'width', 'height', 'colspan', 'rowspan'],
+  });
+  const document = new DOMParser().parseFromString(sanitized, 'text/html');
 
   document.querySelectorAll('a[href]').forEach((link) => {
     link.setAttribute('target', '_blank');

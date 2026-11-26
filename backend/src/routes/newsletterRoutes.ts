@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import cors from 'cors';
 import {
   Router,
@@ -12,24 +13,83 @@ import { markEmailAsReadInGmail } from '../services/gmailService.js';
 
 const router = Router();
 const webAppUrl = process.env.WEBAPP_URL;
+const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+function validateTelegramInitData(initData: string): boolean {
+  if (!botToken) {
+    return false;
+  }
+
+  const params = new URLSearchParams(initData);
+  const hash = params.get('hash');
+
+  if (!hash) {
+    return false;
+  }
+
+  params.delete('hash');
+  const dataCheckString = [...params.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('\n');
+
+  const secretKey = crypto
+    .createHmac('sha256', 'WebAppData')
+    .update(botToken)
+    .digest();
+  const calculatedHash = crypto
+    .createHmac('sha256', secretKey)
+    .update(dataCheckString)
+    .digest('hex');
+
+  const hashBuffer = Buffer.from(hash, 'hex');
+  const calculatedBuffer = Buffer.from(calculatedHash, 'hex');
+
+  if (
+    hashBuffer.length !== calculatedBuffer.length ||
+    !crypto.timingSafeEqual(hashBuffer, calculatedBuffer)
+  ) {
+    return false;
+  }
+
+  const authDate = Number(params.get('auth_date'));
+  if (!Number.isFinite(authDate)) {
+    return false;
+  }
+
+  const maxAgeSeconds = 24 * 60 * 60;
+  if (Math.abs(Date.now() / 1000 - authDate) > maxAgeSeconds) {
+    return false;
+  }
+
+  const allowedUserId = Number(process.env.ALLOWED_TELEGRAM_USER_ID);
+  if (!Number.isFinite(allowedUserId)) {
+    return false;
+  }
+
+  try {
+    const telegramUser = JSON.parse(params.get('user') ?? '{}') as {
+      id?: number;
+    };
+    return telegramUser.id === allowedUserId;
+  } catch {
+    return false;
+  }
+}
 
 router.use(
   cors({
-    origin: webAppUrl,
+    origin: webAppUrl ? [webAppUrl] : false,
     methods: ['GET', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'x-api-secret'],
+    allowedHeaders: ['Content-Type', 'x-telegram-init-data'],
+    optionsSuccessStatus: 204,
   }),
 );
 
 router.use((request: Request, response: Response, next: NextFunction) => {
-  const apiSecret = process.env.API_SECRET ?? process.env.TELEGRAM_BOT_TOKEN;
+  const initData = request.get('x-telegram-init-data');
 
-  if (!apiSecret) {
-    response.status(503).json({ error: 'API authentication is not configured' });
-    return;
-  }
-
-  if (request.get('x-api-secret') !== apiSecret) {
+  if (!initData || !validateTelegramInitData(initData)) {
     response.status(401).json({ error: 'Unauthorized' });
     return;
   }
