@@ -1,17 +1,15 @@
-import "dotenv/config";
-import express from "express";
-import helmet from "helmet";
+import dotenv from 'dotenv';
+import app from './app.js';
+import { db, dbConnection } from './config/db.js';
 
-const app = express();
-const port = Number.parseInt(process.env.PORT ?? "3000", 10);
+dotenv.config();
 
-app.use(helmet());
-app.use(express.json());
+const port = process.env.PORT || 3000;
 
-app.get("/health", (_request, response) => {
-  response.json({ status: "ok" });
-});
+dbConnection();
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+db.once('connected', () => {
+  app.listen(port, () => {
+    console.log(`Server is listening at ${port}`);
+  });
 });

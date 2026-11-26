@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "test": "set NODE_ENV=test&&jest --watchAll --verbose"
   },
   "keywords": [],
@@ -17,8 +17,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.10",
     "mongodb-memory-server": "^11.4.0",
-    "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "dependencies": {
