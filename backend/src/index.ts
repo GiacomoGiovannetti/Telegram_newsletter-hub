@@ -6,13 +6,22 @@ import bot from './bot/telegramBot.js';
 import { syncNewsletters } from './services/gmailService.js';
 
 const port = Number.parseInt(process.env.PORT ?? '3000', 10);
-const mongoDbUri = process.env.MONGODB_URI;
+//declaring in a shorter way env vars
+const envVars = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  cluster: process.env.DB_CLUSTER,
+  dbName: process.env.DB_NAME,
+};
+const dbURI = `mongodb+srv://${envVars.user}:${envVars.password}@${envVars.cluster}.${envVars.dbName}/`;
 let task: ScheduledTask | undefined;
 let server: ReturnType<typeof app.listen> | undefined;
 let shuttingDown = false;
 
-if (!mongoDbUri) {
-  throw new Error('Missing required environment variable: MONGODB_URI');
+if (!dbURI) {
+  throw new Error(
+    'Missing required environment variable: DB_USER, DB_PASSWORD, DB_CLUSTER, or DB_NAME',
+  );
 }
 
 async function shutdown(signal: NodeJS.Signals): Promise<void> {
@@ -35,7 +44,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
 }
 
 async function start(): Promise<void> {
-  await mongoose.connect(mongoDbUri!);
+  await mongoose.connect(dbURI);
 
   server = app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
