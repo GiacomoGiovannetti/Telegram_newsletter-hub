@@ -14,6 +14,10 @@ import { markEmailAsReadInGmail } from '../services/gmailService.js';
 const router = Router();
 const webAppUrl = process.env.WEBAPP_URL;
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
+const allowedCorsOrigins = (webAppUrl ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter((origin) => origin.length > 0);
 
 function validateTelegramInitData(initData: string): boolean {
   if (!botToken) {
@@ -79,7 +83,19 @@ function validateTelegramInitData(initData: string): boolean {
 
 router.use(
   cors({
-    origin: webAppUrl ? [webAppUrl] : false,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedCorsOrigins.length === 0) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, allowedCorsOrigins.includes(origin));
+    },
     methods: ['GET', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-telegram-init-data'],
     optionsSuccessStatus: 204,
