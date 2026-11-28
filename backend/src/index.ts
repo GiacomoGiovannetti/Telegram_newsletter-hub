@@ -24,6 +24,39 @@ if (!dbURI) {
   );
 }
 
+function isTelegramConflictError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return error.message.includes('409: Conflict');
+}
+
+async function launchBotWithRetry(): Promise<void> {
+  const maxAttempts = 12;
+  const retryDelayMs = 5000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await bot.launch();
+      console.log('Telegram bot started');
+      return;
+    } catch (error: unknown) {
+      if (!isTelegramConflictError(error) || attempt === maxAttempts) {
+        throw error;
+      }
+
+      console.warn(
+        `Telegram getUpdates conflict (attempt ${attempt}/${maxAttempts}). Retrying in ${retryDelayMs}ms...`,
+      );
+
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, retryDelayMs);
+      });
+    }
+  }
+}
+
 async function shutdown(signal: NodeJS.Signals): Promise<void> {
   if (shuttingDown) {
     return;
@@ -56,8 +89,7 @@ async function start(): Promise<void> {
     });
   });
 
-  await bot.launch();
-  console.log('Telegram bot started');
+  await launchBotWithRetry();
 }
 
 process.once('SIGINT', () => {
